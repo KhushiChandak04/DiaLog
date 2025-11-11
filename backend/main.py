@@ -120,6 +120,22 @@ app = FastAPI(
     },
 )
 
+# CORS: allow frontend origins (local + Vercel by default). Can be customized via env.
+_default_origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+ALLOWED_ORIGINS = [o.strip() for o in (os.getenv("ALLOWED_ORIGINS") or "").split(",") if o.strip()] or _default_origins
+ALLOWED_ORIGIN_REGEX = os.getenv("ALLOWED_ORIGIN_REGEX", r"https://.*\.vercel\.app")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_origin_regex=ALLOWED_ORIGIN_REGEX,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -2052,5 +2068,7 @@ async def get_general_ml_recommendations(request):
     return general_result
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8002)
+    import uvicorn, os
+    # Use dynamic port if provided (e.g., Render sets $PORT). Default to 8000 for local dev.
+    port = int(os.getenv("PORT", "8000"))
+    uvicorn.run(app, host="0.0.0.0", port=port)

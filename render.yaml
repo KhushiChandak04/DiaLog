@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: dialog-backend
+    env: python
+    plan: free
+    branch: main
+    workingDirectory: backend
+  buildCommand: pip install --upgrade pip ; pip install --only-binary=:all: -r requirements.prod.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: ALLOWED_ORIGIN_REGEX
+        sync: false
+      - key: FIREBASE_CREDENTIALS_JSON
+        sync: false

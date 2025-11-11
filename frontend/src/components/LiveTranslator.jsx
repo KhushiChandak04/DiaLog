@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { useTranslationContext } from '../contexts/TranslationContext';
+import { API_BASE_URL } from '../config';
 
 // Batch-based client cache
 const cacheGet = (from, to, text) => {
@@ -30,7 +31,7 @@ async function translateBatch(texts, from, to) {
 
   if (toFetch.length === 0) return out;
   try {
-    const res = await fetch('http://localhost:8000/translate-batch', {
+    const res = await fetch(`${API_BASE_URL}/translate-batch`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ texts: toFetch, source: from, target: to }),

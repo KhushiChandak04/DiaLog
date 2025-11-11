@@ -1,0 +1,66 @@
+# -----------------------------------------
+# 🚀 DiaLog – Production Dependencies (Relaxed for Fast Deploys)
+# Unpinned packages so pip resolves compatible versions automatically.
+# Render build enforces wheels-only to avoid slow C/meson builds.
+# IMPORTANT: If you later want reproducibility, re-pin with a lock.
+# -----------------------------------------
+
+# --- Core Web Framework ---
+fastapi
+starlette
+uvicorn
+pydantic
+pydantic-core
+python-dotenv
+python-multipart
+requests
+h11
+httpcore
+httpx
+sniffio
+idna
+urllib3
+typing-inspection
+typing-extensions
+packaging
+
+# --- Machine Learning / Data Stack ---
+numpy
+pandas
+scipy
+scikit-learn
+joblib
+threadpoolctl
+python-dateutil
+pytz
+tzdata
+six
+
+# --- Firebase & Google Cloud SDKs ---
+firebase-admin
+google-api-core
+google-auth
+google-cloud-core
+google-cloud-firestore
+google-cloud-storage
+google-crc32c
+google-resumable-media
+googleapis-common-protos
+grpcio
+grpcio-status
+proto-plus
+protobuf
+pyasn1
+pyasn1_modules
+rsa
+google-generativeai
+
+# --- Security / Encoding / Networking (if used by code)
+PyJWT
+msgpack
+pycparser
+
+# --- Optional HTTP/2 (httpx/h11 pull what they need; include if your code uses h2)
+h2
+hpack
+hyperframe
