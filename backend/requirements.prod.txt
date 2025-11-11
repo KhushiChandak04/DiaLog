@@ -1,7 +1,8 @@
 # -----------------------------------------
 # 🚀 DiaLog – Production Dependencies (Stable & Render-Ready)
-# Works with Python 3.11 and 3.12 (recommended)
-# Prebuilt binary wheels → no slow Cython builds
+# Works with Python 3.11 (enforced via runtime.txt) and also tolerates 3.13+
+# Conditional pins ensure prebuilt binary wheels → no slow Cython/Meson builds
+# Do NOT remove the version markers; they prevent source compiles on newer Python.
 # -----------------------------------------
 
 # --- Core Web Framework ---
@@ -23,12 +24,17 @@ typing-inspection==0.4.1
 typing-extensions==4.14.1
 
 # --- Machine Learning / Data Stack ---
-# Using prebuilt binary wheels for fast install
-numpy==1.26.4
-pandas==2.2.2
-scipy==1.13.1
-scikit-learn==1.4.2
-joblib==1.3.2
+# Python-version aware pins to always select wheel builds.
+# Oldest stable (Py 3.11/3.12) and newer (Py 3.13+) variants.
+numpy==1.26.4; python_version < "3.13"
+numpy==2.1.3; python_version >= "3.13"
+pandas==2.2.2; python_version < "3.13"
+pandas==2.3.0; python_version >= "3.13"
+scipy==1.13.1; python_version < "3.13"
+scipy==1.14.1; python_version >= "3.13"
+scikit-learn==1.4.2; python_version < "3.13"
+scikit-learn==1.5.2; python_version >= "3.13"
+joblib==1.4.2
 threadpoolctl==3.6.0
 python-dateutil==2.9.0.post0
 pytz==2025.2
@@ -47,6 +53,7 @@ google-resumable-media==2.7.2
 googleapis-common-protos==1.70.0
 grpcio==1.74.0
 grpcio-status==1.74.0
+# (proto-plus appears once; duplicate removed)
 proto-plus==1.26.1
 protobuf==6.32.0
 pyasn1==0.6.1
@@ -67,5 +74,4 @@ hpack==4.1.0
 hyperframe==6.1.0
 
 # --- Utilities ---
-joblib==1.5.1
-proto-plus==1.26.1
+# Duplicate joblib/proto-plus entries removed (joblib pinned above, proto-plus above)
