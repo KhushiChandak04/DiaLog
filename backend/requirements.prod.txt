@@ -1,10 +1,10 @@
 # -----------------------------------------
-# 🚀 DiaLog – Final Production Requirements
-# Compatible with Render default Python (3.12.x)
-# Fully stable with no dependency conflicts
+# 🚀 DiaLog – Production Dependencies (Stable & Render-Ready)
+# Works with Python 3.11 and 3.12 (recommended)
+# Prebuilt binary wheels → no slow Cython builds
 # -----------------------------------------
 
-# --- Web Framework ---
+# --- Core Web Framework ---
 fastapi==0.116.1
 starlette==0.47.2
 uvicorn==0.35.0
@@ -22,7 +22,8 @@ urllib3==2.5.0
 typing-inspection==0.4.1
 typing-extensions==4.14.1
 
-# --- Data & ML Stack ---
+# --- Machine Learning / Data Stack ---
+# Using prebuilt binary wheels for fast install
 numpy==1.26.4
 pandas==2.2.2
 scipy==1.13.1
@@ -64,3 +65,7 @@ pycparser==2.22
 h2==4.2.0
 hpack==4.1.0
 hyperframe==6.1.0
+
+# --- Utilities ---
+joblib==1.5.1
+proto-plus==1.26.1
