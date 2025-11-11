@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "builds": [
+    { "src": "package.json", "use": "@vercel/static-build" }
+  ],
+  "env": {
+    "REACT_APP_API_BASE_URL": "https://dialog-backend.onrender.com"
+  },
+  "routes": [
+    { "src": "/(.*)", "dest": "/index.html" }
+  ]
+}
