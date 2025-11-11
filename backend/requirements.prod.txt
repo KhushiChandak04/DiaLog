@@ -52,17 +52,20 @@ google-cloud-storage==3.3.0
 google-crc32c==1.7.1
 google-resumable-media==2.7.2
 googleapis-common-protos==1.70.0
-grpcio==1.63.0
-grpcio-status==1.63.0
+grpcio==1.76.0
+grpcio-status==1.76.0
 # (proto-plus appears once; duplicate removed)
 proto-plus==1.26.1
-protobuf==5.28.3
+protobuf==6.33.0
 pyasn1==0.6.1
 pyasn1_modules==0.4.2
 rsa==4.9.1
 
 # --- Google Gemini ---
-google-generativeai==0.8.3
+# Use a version compatible with protobuf 6.x and Python 3.13 wheels
+google-generativeai==0.9.0
+# Ensure the API surface matches protobuf>=6; allow resolver to pick a recent one
+google-ai-generativelanguage>=0.6.15,<1.0.0
 
 # --- Security / Encoding / Networking ---
 PyJWT==2.10.1
