@@ -5,11 +5,19 @@ pydantic==2.11.7
 python-dotenv==1.0.1
 
 # Scientific stack (choose wheels-friendly, compatible versions)
-numpy==1.26.4
-pandas==2.2.2
-scipy==1.13.1
-scikit-learn==1.4.2
+# Python < 3.13 (classic, well-supported wheels)
+numpy==1.26.4; python_version < "3.13"
+pandas==2.2.2; python_version < "3.13"
+scipy==1.13.1; python_version < "3.13"
+scikit-learn==1.4.2; python_version < "3.13"
 joblib==1.3.2
+
+# Python >= 3.13 (require wheels that support CPython 3.13)
+numpy==2.1.2; python_version >= "3.13"
+# Pandas 2.2.x or 2.3.x provide cp313 wheels; keep within the 2.x line for stability
+pandas==2.3.0; python_version >= "3.13"
+scipy==1.14.1; python_version >= "3.13"
+scikit-learn==1.5.2; python_version >= "3.13"
 
 # Uploads / forms
 python-multipart==0.0.9
