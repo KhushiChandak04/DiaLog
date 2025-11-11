@@ -1,81 +1,66 @@
 # -----------------------------------------
-# 🚀 DiaLog – Production Dependencies (Stable & Render-Ready)
-# Works with Python 3.11 (enforced via runtime.txt) and also tolerates 3.13+
-# Conditional pins ensure prebuilt binary wheels → no slow Cython/Meson builds
-# Do NOT remove the version markers; they prevent source compiles on newer Python.
+# 🚀 DiaLog – Production Dependencies (Relaxed for Fast Deploys)
+# Unpinned packages so pip resolves compatible versions automatically.
+# Render build enforces wheels-only to avoid slow C/meson builds.
+# IMPORTANT: If you later want reproducibility, re-pin with a lock.
 # -----------------------------------------
 
 # --- Core Web Framework ---
-fastapi==0.116.1
-starlette==0.47.2
-uvicorn==0.35.0
-pydantic==2.11.7
-pydantic-core==2.33.2
-python-dotenv==1.1.1
-python-multipart==0.0.9
-requests==2.32.4
-h11==0.16.0
-httpcore==1.0.9
-httpx==0.28.1
-sniffio==1.3.1
-idna==3.10
-urllib3==2.5.0
-typing-inspection==0.4.1
-typing-extensions==4.14.1
-packaging==24.2
+fastapi
+starlette
+uvicorn
+pydantic
+pydantic-core
+python-dotenv
+python-multipart
+requests
+h11
+httpcore
+httpx
+sniffio
+idna
+urllib3
+typing-inspection
+typing-extensions
+packaging
 
 # --- Machine Learning / Data Stack ---
-# Python-version aware pins to always select wheel builds.
-# Oldest stable (Py 3.11/3.12) and newer (Py 3.13+) variants.
-numpy==1.26.4; python_version < "3.13"
-numpy==2.1.3; python_version >= "3.13"
-pandas==2.2.2; python_version < "3.13"
-pandas==2.3.0; python_version >= "3.13"
-scipy==1.13.1; python_version < "3.13"
-scipy==1.14.1; python_version >= "3.13"
-scikit-learn==1.4.2; python_version < "3.13"
-scikit-learn==1.5.2; python_version >= "3.13"
-joblib==1.4.2
-threadpoolctl==3.6.0
-python-dateutil==2.9.0.post0
-pytz==2025.2
-tzdata==2025.2
-six==1.17.0
+numpy
+pandas
+scipy
+scikit-learn
+joblib
+threadpoolctl
+python-dateutil
+pytz
+tzdata
+six
 
 # --- Firebase & Google Cloud SDKs ---
-firebase-admin==6.2.0
-google-api-core==2.25.1
-google-auth==2.40.3
-google-cloud-core==2.4.3
-google-cloud-firestore==2.21.0
-google-cloud-storage==3.3.0
-google-crc32c==1.7.1
-google-resumable-media==2.7.2
-googleapis-common-protos==1.70.0
-grpcio==1.76.0
-grpcio-status==1.76.0
-# (proto-plus appears once; duplicate removed)
-proto-plus==1.26.1
-protobuf==6.33.0
-pyasn1==0.6.1
-pyasn1_modules==0.4.2
-rsa==4.9.1
+firebase-admin
+google-api-core
+google-auth
+google-cloud-core
+google-cloud-firestore
+google-cloud-storage
+google-crc32c
+google-resumable-media
+googleapis-common-protos
+grpcio
+grpcio-status
+proto-plus
+protobuf
+pyasn1
+pyasn1_modules
+rsa
+google-generativeai
 
-# --- Google Gemini ---
-# Use a version compatible with protobuf 6.x and Python 3.13 wheels
-google-generativeai==0.9.0
-# Ensure the API surface matches protobuf>=6; allow resolver to pick a recent one
-google-ai-generativelanguage>=0.6.15,<1.0.0
+# --- Security / Encoding / Networking (if used by code)
+PyJWT
+msgpack
+pycparser
 
-# --- Security / Encoding / Networking ---
-PyJWT==2.10.1
-msgpack==1.1.1
-pycparser==2.22
-
-# --- HTTP/2 Dependencies ---
-h2==4.2.0
-hpack==4.1.0
-hyperframe==6.1.0
-
-# --- Utilities ---
-# Duplicate joblib/proto-plus entries removed (joblib pinned above, proto-plus above)
+# --- Optional HTTP/2 (httpx/h11 pull what they need; include if your code uses h2)
+h2
+hpack
+hyperframe
