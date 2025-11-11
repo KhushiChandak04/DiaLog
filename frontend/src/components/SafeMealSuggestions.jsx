@@ -29,16 +29,24 @@ const SafeMealSuggestions = ({ userProfile = {}, currentMeal = null, className =
 
   // Function to determine if a meal is vegetarian
   const isVegetarian = (mealName) => {
-    const name = mealName.toLowerCase();
+    const name = (mealName || '').toLowerCase();
     const nonVegKeywords = [
-      'chicken', 'mutton', 'fish', 'egg', 'meat', 'prawn', 'shrimp', 'crab',
-      'lamb', 'beef', 'pork', 'turkey', 'duck', 'seafood', 'salmon', 'tuna',
-      'bacon', 'ham', 'sausage', 'biryani chicken', 'chicken curry', 'fish curry',
-      'egg curry', 'omelet', 'omelette', 'scrambled egg', 'boiled egg'
+      // Common meats
+      'chicken','mutton','fish','egg','meat','prawn','prawns','shrimp','crab','keema','kebab','kebabs','tikka','boti','paya',
+      'lamb','beef','pork','turkey','duck','seafood','salmon','tuna','sardine','anchovy','octopus','squid','ham','salami','pepperoni','prosciutto','bacon','sausage',
+      // Phrases and Indian language variants
+      'biryani chicken','chicken curry','fish curry','tandoori','seekh','shami','galouti','nihari','bhuna chicken','butter chicken',
+      // Egg forms
+      'egg curry','omelet','omelette','scrambled egg','boiled egg','egg bhurji','anda bhurji','anda','murgh','murg'
     ];
-    
-    // Check if any non-veg keyword is present in the meal name
-    return !nonVegKeywords.some(keyword => name.includes(keyword));
+    // If it contains any non-veg keyword (including 'egg'), it's non-veg regardless of labels
+    if (nonVegKeywords.some(k => name.includes(k))) return false;
+    // Explicit eggless indicates vegetarian
+    if (name.includes('eggless')) return true;
+    // Hints like 'veg' are fine as long as no non-veg keyword exists
+    if (name.includes('veg ') || name.includes('(veg)') || name.includes('[veg]') || name.includes('pure veg') || name.includes('vegetarian')) return true;
+    // Default heuristic: no non-veg tokens found => treat as vegetarian
+    return true;
   };
 
   // Load meals from dataset
@@ -95,48 +103,54 @@ const SafeMealSuggestions = ({ userProfile = {}, currentMeal = null, className =
   const getMealSuggestions = (category, count = 6) => {
     if (!availableMeals.length) return [];
 
-    // Filter meals based on category
-    let candidateMeals = [...availableMeals];
-    
-    // Apply veg/non-veg filter first
-    if (isVegOnly) {
-      candidateMeals = candidateMeals.filter(meal => isVegetarian(meal));
-    }
-    
-    if (category !== 'all') {
-      candidateMeals = candidateMeals.filter(meal => {
-        const name = meal.toLowerCase();
-        switch (category) {
-          case 'breakfast':
-            return name.includes('breakfast') || name.includes('poha') || name.includes('upma') || 
-                   name.includes('idli') || name.includes('dosa') || name.includes('paratha');
-          case 'lunch':
-            return name.includes('lunch') || name.includes('rice') || name.includes('dal') || 
-                   name.includes('curry') || name.includes('sambar') || name.includes('rasam');
-          case 'dinner':
-            return name.includes('dinner') || name.includes('roti') || name.includes('sabzi') || 
-                   name.includes('chapati') || name.includes('bhaji');
-          case 'snacks':
-            return name.includes('snack') || name.includes('tea') || name.includes('biscuit') || 
-                   name.includes('namkeen') || name.includes('chaat') || name.includes('pakora');
-          default:
-            return true;
-        }
-      });
-    }
+    // Build filtered pool based on current toggles (veg + category)
+    const applyFilters = (list) => {
+      let out = [...list];
+      if (isVegOnly) {
+        out = out.filter(meal => isVegetarian(meal));
+      }
+      if (category !== 'all') {
+        out = out.filter(meal => {
+          const name = meal.toLowerCase();
+          switch (category) {
+            case 'breakfast':
+              return name.includes('breakfast') || name.includes('poha') || name.includes('upma') || 
+                     name.includes('idli') || name.includes('dosa') || name.includes('paratha');
+            case 'lunch':
+              return name.includes('lunch') || name.includes('rice') || name.includes('dal') || 
+                     name.includes('curry') || name.includes('sambar') || name.includes('rasam') || name.includes('sabzi');
+            case 'dinner':
+              return name.includes('dinner') || name.includes('roti') || name.includes('sabzi') || 
+                     name.includes('chapati') || name.includes('bhaji') || name.includes('soup');
+            case 'snacks':
+              return name.includes('snack') || name.includes('tea') || name.includes('biscuit') || 
+                     name.includes('namkeen') || name.includes('chaat') || name.includes('pakora') || name.includes('snacks');
+            default:
+              return true;
+          }
+        });
+      }
+      return out;
+    };
+
+    // Filter meals based on current state
+    let candidateMeals = applyFilters(availableMeals);
 
     // Remove already used meals and get fresh ones
     const unusedMeals = candidateMeals.filter(meal => !usedMeals.has(meal));
     
-    // If we've used all meals, reset the used set
-    if (unusedMeals.length < count) {
+    // If we've exhausted unique items under current filters, allow reuse but keep filters intact
+    let availableForSelection;
+    if (unusedMeals.length >= count) {
+      availableForSelection = [...unusedMeals];
+    } else {
+      // Reset the used set so future calls can rotate again, but DO NOT drop filters
       setUsedMeals(new Set());
-      candidateMeals = [...availableMeals];
+      availableForSelection = [...candidateMeals];
     }
 
-    // Randomly select meals
+    // Randomly select meals from the filtered pool
     const selectedMeals = [];
-    const availableForSelection = unusedMeals.length >= count ? unusedMeals : candidateMeals;
     
     for (let i = 0; i < Math.min(count, availableForSelection.length); i++) {
       const randomIndex = Math.floor(Math.random() * availableForSelection.length);
@@ -153,6 +167,11 @@ const SafeMealSuggestions = ({ userProfile = {}, currentMeal = null, className =
 
     return selectedMeals;
   };
+
+  // Reset rotation cache when filters change to avoid cross-contamination
+  useEffect(() => {
+    setUsedMeals(new Set());
+  }, [isVegOnly, selectedCategory]);
 
   // Add meal to log function
   const addMealToLog = (meal) => {
@@ -216,6 +235,11 @@ const SafeMealSuggestions = ({ userProfile = {}, currentMeal = null, className =
       time_of_day: timeOfDayMap[category] || 'Lunch',
       count: count
     };
+
+    // Convey vegetarian preference to backend so it can filter candidate foods earlier
+    if (isVegOnly) {
+      requestData.meal_preferences = ['vegetarian'];
+    }
 
     // Use truly personalized recommendations if user_id is available
     let response;
@@ -306,6 +330,9 @@ const SafeMealSuggestions = ({ userProfile = {}, currentMeal = null, className =
     // Add a small delay to prevent rapid flickering
     setTimeout(() => setIsLoading(false), 300);
   }, [availableMeals.length, isLoading, userProfile.age, userProfile.weight_kg, userProfile.height_cm, selectedCategory, getMLRecommendations, isVegOnly]);
+
+  // Final guard for veg-only before rendering
+  const displayedSuggestions = isVegOnly ? (suggestions || []).filter(m => isVegetarian(m?.name)) : suggestions;
 
   return (
     <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-soft p-6 ${className}`}>
@@ -398,34 +425,34 @@ const SafeMealSuggestions = ({ userProfile = {}, currentMeal = null, className =
       )}
 
       {/* Personalization Status */}
-      {!isLoading && suggestions.length > 0 && suggestions[0]?.personalization_info && (
+  {!isLoading && displayedSuggestions.length > 0 && displayedSuggestions[0]?.personalization_info && (
         <div className={`p-4 rounded-lg mb-6 ${
-          suggestions[0].personalization_info.has_personal_model 
+              displayedSuggestions[0].personalization_info.has_personal_model 
             ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' 
             : 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
         }`}>
           <div className="flex items-start space-x-3">
             <SparklesIcon className={`h-5 w-5 mt-0.5 ${
-              suggestions[0].personalization_info.has_personal_model ? 'text-green-600' : 'text-blue-600'
+              displayedSuggestions[0].personalization_info.has_personal_model ? 'text-green-600' : 'text-blue-600'
             }`} />
             <div className="flex-1">
               <h4 className={`font-medium ${
-                suggestions[0].personalization_info.has_personal_model ? 'text-green-800 dark:text-green-200' : 'text-blue-800 dark:text-blue-200'
+                displayedSuggestions[0].personalization_info.has_personal_model ? 'text-green-800 dark:text-green-200' : 'text-blue-800 dark:text-blue-200'
               }`}>
-                {suggestions[0].personalization_info.personalization_note}
+                {displayedSuggestions[0].personalization_info.personalization_note}
               </h4>
-              {suggestions[0].personalization_info.personal_insights && (
+              {displayedSuggestions[0].personalization_info.personal_insights && (
                 <p className={`text-sm mt-1 ${
-                  suggestions[0].personalization_info.has_personal_model ? 'text-green-700 dark:text-green-300' : 'text-blue-700 dark:text-blue-300'
+                  displayedSuggestions[0].personalization_info.has_personal_model ? 'text-green-700 dark:text-green-300' : 'text-blue-700 dark:text-blue-300'
                 }`}>
-                  {suggestions[0].personalization_info.personal_insights}
+                  {displayedSuggestions[0].personalization_info.personal_insights}
                 </p>
               )}
-              {suggestions[0].personalization_info.has_personal_model && (
+              {displayedSuggestions[0].personalization_info.has_personal_model && (
                 <div className="flex items-center space-x-4 mt-2 text-xs text-green-600 dark:text-green-400">
-                  <span>{suggestions[0].personalization_info.meal_count} meals analyzed</span>
-                  {suggestions[0].personalization_info.model_score && (
-                    <span>Model accuracy: {(suggestions[0].personalization_info.model_score * 100).toFixed(0)}%</span>
+                  <span>{displayedSuggestions[0].personalization_info.meal_count} meals analyzed</span>
+                  {displayedSuggestions[0].personalization_info.model_score && (
+                    <span>Model accuracy: {(displayedSuggestions[0].personalization_info.model_score * 100).toFixed(0)}%</span>
                   )}
                 </div>
               )}
@@ -435,13 +462,13 @@ const SafeMealSuggestions = ({ userProfile = {}, currentMeal = null, className =
       )}
 
       {/* Individual Suggestions Grid */}
-      {!isLoading && suggestions.length > 0 && (
+      {!isLoading && displayedSuggestions.length > 0 && (
         <div>
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
             Meal Suggestions
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {suggestions.map((meal, index) => (
+            {displayedSuggestions.map((meal, index) => (
               <div key={index} className="relative">
                 <MealCard
                   meal={meal}
@@ -524,7 +551,7 @@ const SafeMealSuggestions = ({ userProfile = {}, currentMeal = null, className =
       )}
 
       {/* Empty State */}
-      {!isLoading && suggestions.length === 0 && (
+      {!isLoading && displayedSuggestions.length === 0 && (
         <div className="text-center py-12">
           <div className="p-4 bg-gray-100 dark:bg-gray-700 rounded-full w-16 h-16 mx-auto mb-4">
             <ExclamationTriangleIcon className="h-8 w-8 text-gray-400 mx-auto" />
