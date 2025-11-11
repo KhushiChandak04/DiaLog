@@ -870,6 +870,39 @@ def _gl_badge(gl_value: Optional[float], cutoff: float = 15.0) -> Optional[Dict[
     except Exception:
         return None
 
+# -------- Veg/Non-veg helpers --------
+NON_VEG_KEYWORDS = {
+    # Common meats
+    'chicken','mutton','fish','egg','meat','prawn','prawns','shrimp','crab','keema','kebab','kebabs','tikka','boti','paya',
+    'lamb','beef','pork','turkey','duck','seafood','salmon','tuna','sardine','anchovy','octopus','squid','ham','salami','pepperoni','prosciutto','bacon','sausage',
+    # Phrases and Indian variants
+    'biryani chicken','chicken curry','fish curry','tandoori','seekh','shami','galouti','nihari','bhuna chicken','butter chicken',
+    # Egg forms
+    'egg curry','omelet','omelette','scrambled egg','boiled egg','egg bhurji','anda bhurji','anda','murgh','murg'
+}
+
+def is_vegetarian_name(food_name: str) -> bool:
+    try:
+        n = (food_name or '').lower()
+        # If any explicit non-veg token is present, it's non-veg regardless of labels
+        if any(k in n for k in NON_VEG_KEYWORDS):
+            # Allow only explicit 'eggless' to override 'egg'
+            if 'egg' in n and 'eggless' in n:
+                # proceed to other checks
+                pass
+            else:
+                return False
+        # Explicit eggless indicates vegetarian
+        if 'eggless' in n:
+            return True
+        # Hints toward vegetarian
+        if any(h in n for h in ['veg ', '(veg', '[veg', 'pure veg', 'vegetarian']):
+            return True
+        # Default: no non-veg token means vegetarian
+        return True
+    except Exception:
+        return True
+
 def get_nutritional_info_enhanced(food_name: str, portion_size_g: float, 
                                 portion_features: Dict[str, float]) -> NutritionalInfo:
     """
@@ -1541,13 +1574,17 @@ async def get_personalized_recommendations(request: PersonalizedRecommendationRe
         # Find foods matching time of day
         candidate_foods = []
         for food in all_foods:
-            food_lower = food.lower()
-            if any(keyword in food_lower for keyword in relevant_keywords):
+            fl = food.lower()
+            if any(keyword in fl for keyword in relevant_keywords):
                 candidate_foods.append(food)
-        
-        # If no specific matches, use all foods
-        if len(candidate_foods) < request.count:
-            candidate_foods = all_foods
+
+        # Apply vegetarian preference if requested
+        if request.meal_preferences and any(p.lower() == 'vegetarian' for p in request.meal_preferences):
+            candidate_foods = [f for f in candidate_foods if is_vegetarian_name(f)]
+
+        # If nothing matched after filters, broaden to time-of-day only (no veg filter relaxation)
+        if not candidate_foods:
+            candidate_foods = [f for f in all_foods if any(k in f.lower() for k in relevant_keywords)]
         
         # Test each food with ML model and rank by safety
         food_scores = []
@@ -1641,6 +1678,10 @@ async def get_personalized_recommendations(request: PersonalizedRecommendationRe
                 'explanation': food_rec['explanation']
             })
         
+        # Final veg-only guard on output, if requested
+        if request.meal_preferences and any(p.lower() == 'vegetarian' for p in request.meal_preferences):
+            recommendations = [rec for rec in recommendations if is_vegetarian_name(rec.get('name'))]
+
         return {
             'recommendations': recommendations,
             'user_profile': {
@@ -1742,6 +1783,7 @@ class TrulyPersonalizedRequest(BaseModel):
     post_meal_sugar: int
     diabetes_type: str
     time_of_day: str = "Lunch"
+    meal_preferences: Optional[List[str]] = None
     count: int = 6
 
 @app.post("/truly-personalized-recommendations")
@@ -1778,10 +1820,15 @@ async def get_truly_personalized_recommendations(request: TrulyPersonalizedReque
             food_lower = food.lower()
             if any(keyword in food_lower for keyword in relevant_keywords):
                 candidate_foods.append(food)
+
+        # Apply vegetarian preference if requested
+        if request.meal_preferences and any(p.lower() == 'vegetarian' for p in request.meal_preferences):
+            candidate_foods = [f for f in candidate_foods if is_vegetarian_name(f)]
         
         # If no specific matches, use broader selection
         if len(candidate_foods) < request.count:
-            candidate_foods = all_foods[:50]  # Use first 50 foods
+            # Keep time-of-day alignment; don't drop veg filter once chosen
+            candidate_foods = [f for f in all_foods if any(k in f.lower() for k in relevant_keywords)][:50]
         
         # Prepare user features for personalized prediction
         user_features = {
@@ -1939,6 +1986,10 @@ async def get_truly_personalized_recommendations(request: TrulyPersonalizedReque
         # Get user model status
         model_status = personalized_recommender.get_user_model_status(request.user_id)
         
+        # Final veg-only guard on output, if requested
+        if request.meal_preferences and any(p.lower() == 'vegetarian' for p in request.meal_preferences):
+            top_recommendations = [rec for rec in top_recommendations if is_vegetarian_name(rec.get('name'))]
+
         return {
             'recommendations': top_recommendations,
             'personalization': {
