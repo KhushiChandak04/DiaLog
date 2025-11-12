@@ -112,9 +112,37 @@ cd frontend; npm start
 
 Access URLs
 
-- Backend API: http://localhost:8000
-- Frontend: http://localhost:3000 (or 3001 if 3000 is occupied)
+- Backend (Production): https://dialog-backend.onrender.com
+- Frontend (Production): https://dialog-frontend.onrender.com
+- Local Backend API: http://localhost:8000
+- Local Frontend Dev: http://localhost:3000 (or 3001 if 3000 is occupied)
 - API Docs (Swagger): http://localhost:8000/docs
+
+## Deployment (Render)
+
+### Backend (Web Service)
+- workingDirectory: `backend`
+- buildCommand: `pip install --upgrade pip ; pip install --only-binary=:all: -r requirements.prod.txt`
+- startCommand: `uvicorn main:app --host 0.0.0.0 --port $PORT`
+- Health check path: `/health`
+- Env vars: `PYTHON_VERSION=3.11.9`, plus any Firebase / Gemini keys.
+
+### Frontend (Static Site)
+- Root Directory: `frontend`
+- Build Command: `npm ci && npm run build` (or `npm install && npm run build` if no lockfile)
+- Publish Directory: `build`
+- REACT_APP_API_BASE_URL: `https://dialog-backend.onrender.com`
+- Firebase env keys (if using Firestore features).
+
+### SPA Refresh Fix
+Static hosting returns 404 on deep links by default. Added `public/404.html` which redirects to `index.html` and a script in `src/index.jsx` that restores the original path for React Router. If you use Render's rewrite settings, also add: Source `/*` → Destination `/index.html` (Rewrite).
+
+### Locking Dependencies (Optional Post‑Deploy)
+After a successful deploy you can freeze versions for reproducibility:
+```bash
+pip freeze > backend/constraints.txt
+```
+Copy top‑level lines you care about into a pinned `requirements.prod.lock.txt` later. Keep the relaxed file for quick iteration until stability is confirmed.
 
 ## Multilingual Support 🇮🇳
 
