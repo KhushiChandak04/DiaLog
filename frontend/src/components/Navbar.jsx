@@ -114,12 +114,20 @@ const Navbar = () => {
                 <T>Log Out</T>
               </button>
             ) : (
-              <button
-                onClick={() => navigate('/auth')}
-                className="relative px-4 py-2 rounded-xl text-sm font-medium bg-success-50 text-success-700 dark:bg-success-900/30 dark:text-success-300 hover:bg-success-100 dark:hover:bg-success-900/40 transition-all duration-300 mr-2"
-              >
-                <T>Log In</T>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => navigate('/login')}
+                  className="relative px-4 py-2 rounded-xl text-sm font-medium bg-success-50 text-success-700 dark:bg-success-900/30 dark:text-success-300 hover:bg-success-100 dark:hover:bg-success-900/40 transition-all duration-300"
+                >
+                  <T>Log In</T>
+                </button>
+                <button
+                  onClick={() => navigate('/signup')}
+                  className="relative px-4 py-2 rounded-xl text-sm font-medium bg-primary-600 text-white hover:bg-primary-700 transition-all duration-300"
+                >
+                  <T>Sign Up</T>
+                </button>
+              </div>
             )}
             {/* Enhanced Theme toggle */}
             <button

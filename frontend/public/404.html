@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>DiaLog – Redirecting…</title>
+  <script>
+    (function(){
+      try {
+        var original = location.pathname + (location.search || '') + (location.hash || '');
+        // Build redirect URL to SPA entrypoint with original path preserved
+        var target = '/index.html?redirect=' + encodeURIComponent(original);
+        // Use replace to avoid polluting history
+        location.replace(target);
+      } catch (e) {
+        // As a last resort, go to landing page
+        location.replace('/index.html');
+      }
+    })();
+  </script>
+  <style>body{font-family:system-ui,Arial,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#0f172a;color:#f1f5f9} .box{max-width:480px;text-align:center;padding:2rem} h1{font-size:1.75rem;margin-bottom:.75rem} p{opacity:.8;margin:.5rem 0 1.25rem} a{color:#38bdf8;text-decoration:none;font-weight:600}</style>
+</head>
+<body>
+  <div class="box">
+    <h1>Redirecting…</h1>
+    <p>If you are not redirected automatically, click below.</p>
+    <p><a href="/index.html">Go to DiaLog</a></p>
+  </div>
+</body>
+</html>

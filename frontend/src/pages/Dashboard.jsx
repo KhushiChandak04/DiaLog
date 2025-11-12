@@ -35,32 +35,21 @@ const Dashboard = () => {
   const [selectedMeal, setSelectedMeal] = useState(null);
   const [selectedRiskLevel, setSelectedRiskLevel] = useState('low');
 
-  // Load ML data + logs on component mount
+  // Load ML data + logs on component mount. Since this page is behind ProtectedRoute,
+  // auth has already been resolved; avoid redundant onAuthStateChanged to prevent flicker.
   useEffect(() => {
     const loadDashboardData = async () => {
       try {
         setLoading(true);
         setError(null);
         
-        // Wait for auth state to be determined
+        // ProtectedRoute guarantees user is available by the time this renders
         const user = auth.currentUser;
-        console.log('Current user:', user); // Debug log
-        
         if (!user) {
-          // Try to wait for auth state
-          const unsubscribe = auth.onAuthStateChanged((authUser) => {
-            if (authUser) {
-              console.log('Auth user found:', authUser.uid); // Debug log
-              loadUserData(authUser.uid);
-            } else {
-              setError('Please log in to view your dashboard.');
-              setLoading(false);
-            }
-            unsubscribe(); // Cleanup
-          });
+          setError('Please log in to view your dashboard.');
+          setLoading(false);
           return;
         }
-        
         await loadUserData(user.uid);
       } catch (err) {
         setError('Error loading dashboard data. Please try again.');

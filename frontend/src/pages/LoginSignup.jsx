@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { signInWithGoogle, signUpWithEmail, signInWithEmail } from '../services/firebase';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { T } from '../components/TranslatedText';
 
-const LoginSignup = () => {
+const LoginSignup = ({ initialMode }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -11,6 +11,28 @@ const LoginSignup = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Determine initial mode from route or query string
+  useEffect(() => {
+    try {
+      const path = location.pathname.toLowerCase();
+      const params = new URLSearchParams(location.search);
+      const hash = (location.hash || '').toLowerCase();
+      const explicitMode = (initialMode || params.get('mode') || params.get('tab') || '').toLowerCase();
+      const wantsSignup =
+        explicitMode === 'signup' ||
+        path.endsWith('/signup') ||
+        path.endsWith('/register') ||
+        hash.includes('signup') ||
+        hash.includes('register');
+      setIsLogin(!wantsSignup);
+    } catch {
+      setIsLogin(true);
+    }
+    // only evaluate on mount and when path/search/hash change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, location.search, location.hash, initialMode]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -41,7 +63,7 @@ const LoginSignup = () => {
     <div className="min-h-screen flex items-center justify-center bg-primary-50 dark:bg-gray-900">
       <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-xl shadow-soft p-8">
         <h2 className="text-2xl font-bold mb-6 text-primary-700 dark:text-primary-400 text-center">
-          <T>{isLogin ? 'Login' : 'Sign Up'}</T>
+          <T>{isLogin ? 'Login' : 'Create an Account'}</T>
         </h2>
         <form onSubmit={handleSubmit} className="space-y-6">
           {!isLogin && (
@@ -139,7 +161,19 @@ const LoginSignup = () => {
         <div className="mt-6 text-center">
           <button
             className="text-primary-600 hover:underline"
-            onClick={() => setIsLogin(!isLogin)}
+            onClick={() => {
+              const next = !isLogin;
+              setIsLogin(next);
+              // reflect mode in URL without page reload for shareable state
+              const url = new URL(window.location.href);
+              if (next) {
+                url.searchParams.delete('mode');
+                window.history.replaceState(null, '', url.pathname + (url.search ? url.search : '') + url.hash);
+              } else {
+                url.searchParams.set('mode', 'signup');
+                window.history.replaceState(null, '', url.pathname + '?' + url.searchParams.toString() + url.hash);
+              }
+            }}
           >
             <T>{isLogin ? "Don't have an account? Sign Up" : "Already have an account? Login"}</T>
           </button>

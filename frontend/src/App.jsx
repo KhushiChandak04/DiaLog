@@ -76,6 +76,8 @@ function App() {
             
             {/* Login/Signup Page */}
             <Route path="/auth" element={<LoginSignup />} />
+            <Route path="/login" element={<LoginSignup initialMode="login" />} />
+            <Route path="/signup" element={<LoginSignup initialMode="signup" />} />
             
             {/* Meal Logging */}
             <Route path="/meal-log" element={<MealLog />} />
@@ -89,8 +91,8 @@ function App() {
             {/* Feedback */}
             <Route path="/feedback" element={<Feedback />} />
             
-            {/* 404 Not Found */}
-            <Route path="*" element={<NotFound />} />
+            {/* Unknown routes → go to landing page */}
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
         
