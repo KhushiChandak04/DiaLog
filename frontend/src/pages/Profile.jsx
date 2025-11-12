@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useTranslationContext } from '../contexts/TranslationContext';
 import { auth } from '../services/firebase';
 import { saveUserProfile, fetchUserProfile } from '../services/firebase';
@@ -10,6 +10,7 @@ import {
 } from '@heroicons/react/24/outline';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import { T } from '../components/TranslatedText';
+import { calculateBMI, classifyBMI } from '../utils/health';
 
 const Profile = () => {
   const [formData, setFormData] = useState({
@@ -127,32 +128,13 @@ const Profile = () => {
     fetchProfile();
   }, []);
 
-  // Calculate BMI whenever height or weight changes
+  // Calculate BMI whenever height or weight changes, using centralized util to avoid drift
   React.useEffect(() => {
+    // Only recompute when the actual numeric inputs or units change, not on unrelated form fields
     const { height, weight, heightUnit, weightUnit } = formData;
-    
-    if (height && weight) {
-      let heightInM = parseFloat(height);
-      let weightInKg = parseFloat(weight);
-
-      // Convert height to meters
-      if (heightUnit === 'cm') {
-        heightInM = heightInM / 100;
-      } else if (heightUnit === 'ft') {
-        heightInM = heightInM * 0.3048;
-      }
-
-      // Convert weight to kg
-      if (weightUnit === 'lbs') {
-        weightInKg = weightInKg * 0.453592;
-      }
-
-      const calculatedBmi = weightInKg / (heightInM * heightInM);
-      setBmi(calculatedBmi.toFixed(1));
-    } else {
-      setBmi(null);
-    }
-  }, [formData]);
+    const computed = calculateBMI(weight, weightUnit, height, heightUnit);
+    setBmi(computed);
+  }, [formData.height, formData.weight, formData.heightUnit, formData.weightUnit]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -268,12 +250,7 @@ const Profile = () => {
     }
   };
 
-  const getBmiCategory = (bmiValue) => {
-    if (bmiValue < 18.5) return { category: 'Underweight', color: 'text-blue-600 bg-blue-100 dark:text-blue-400 dark:bg-blue-900/30' };
-    if (bmiValue < 25) return { category: 'Normal', color: 'text-success-600 bg-success-100 dark:text-success-400 dark:bg-success-900/30' };
-    if (bmiValue < 30) return { category: 'Overweight', color: 'text-warning-600 bg-warning-100 dark:text-warning-400 dark:bg-warning-900/30' };
-    return { category: 'Obese', color: 'text-danger-600 bg-danger-100 dark:text-danger-400 dark:bg-danger-900/30' };
-  };
+  const bmiCategory = useMemo(() => classifyBMI(bmi), [bmi]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -578,15 +555,15 @@ const Profile = () => {
               </div>
 
               {/* BMI Display */}
-              {bmi && (
+              {bmi !== null && (
                 <div className="mt-4 p-4 bg-primary-50 dark:bg-primary-900/20 rounded-xl">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-neutral-600 dark:text-neutral-400"><T>Your BMI</T></p>
                       <p className="text-2xl font-bold text-neutral-900 dark:text-white">{bmi}</p>
                     </div>
-                    <div className={`px-3 py-1 rounded-full text-sm font-medium ${getBmiCategory(parseFloat(bmi)).color}`}>
-                      {getBmiCategory(parseFloat(bmi)).category}
+                    <div className={`px-3 py-1 rounded-full text-sm font-medium ${bmiCategory.color}`}>
+                      {bmiCategory.category}
                     </div>
                   </div>
                 </div>

@@ -27,25 +27,28 @@ const SafeMealSuggestions = ({ userProfile = {}, currentMeal = null, className =
     { id: 'snacks', name: 'Snacks', icon: CheckCircleIcon }
   ];
 
-  // Function to determine if a meal is vegetarian
+  // Robust vegetarian detector (mirrors backend logic, fixes flicker & false matches)
   const isVegetarian = (mealName) => {
-    const name = (mealName || '').toLowerCase();
-    const nonVegKeywords = [
-      // Common meats
+    const n = (mealName || '').toLowerCase();
+    if (!n.trim()) return true;
+    // Keywords (ensure we don't misclassify 'eggless' as non-veg)
+    const NON_VEG = [
       'chicken','mutton','fish','egg','meat','prawn','prawns','shrimp','crab','keema','kebab','kebabs','tikka','boti','paya',
       'lamb','beef','pork','turkey','duck','seafood','salmon','tuna','sardine','anchovy','octopus','squid','ham','salami','pepperoni','prosciutto','bacon','sausage',
-      // Phrases and Indian language variants
       'biryani chicken','chicken curry','fish curry','tandoori','seekh','shami','galouti','nihari','bhuna chicken','butter chicken',
-      // Egg forms
       'egg curry','omelet','omelette','scrambled egg','boiled egg','egg bhurji','anda bhurji','anda','murgh','murg'
     ];
-    // If it contains any non-veg keyword (including 'egg'), it's non-veg regardless of labels
-    if (nonVegKeywords.some(k => name.includes(k))) return false;
-    // Explicit eggless indicates vegetarian
-    if (name.includes('eggless')) return true;
-    // Hints like 'veg' are fine as long as no non-veg keyword exists
-    if (name.includes('veg ') || name.includes('(veg)') || name.includes('[veg]') || name.includes('pure veg') || name.includes('vegetarian')) return true;
-    // Default heuristic: no non-veg tokens found => treat as vegetarian
+    // Handle eggless override before generic 'egg' match
+    if (n.includes('eggless')) {
+      // Still reject if explicit meat tokens present
+      if (NON_VEG.filter(k => k !== 'egg').some(k => n.includes(k))) return false;
+      return true;
+    }
+    // Fast rejection if any meat keyword present
+    if (NON_VEG.some(k => n.includes(k))) return false;
+    // Positive vegetarian hints
+    if (/\bveg\b/.test(n) || n.includes('(veg') || n.includes('[veg') || n.includes('pure veg') || n.includes('vegetarian')) return true;
+    // Default: treat as vegetarian when no explicit non-veg tokens
     return true;
   };
 
@@ -275,7 +278,7 @@ const SafeMealSuggestions = ({ userProfile = {}, currentMeal = null, className =
       personalization_info: response.personalization || null  // Store personalization details
     }));
 
-    // Apply veg/non-veg filter to ML recommendations
+    // Apply veg/non-veg filter to ML recommendations (final guard)
     if (isVegOnly) {
       transformedRecommendations = transformedRecommendations.filter(rec => isVegetarian(rec.name));
     }
@@ -317,19 +320,27 @@ const SafeMealSuggestions = ({ userProfile = {}, currentMeal = null, className =
       if (userProfile.age && userProfile.weight_kg && userProfile.height_cm) {
         // Use ML-powered recommendations
         const mlRecommendations = await getMLRecommendations(selectedCategory, 6);
-        setSuggestions(mlRecommendations);
+        setSuggestions(isVegOnly ? mlRecommendations.filter(m => isVegetarian(m.name)) : mlRecommendations);
       } else {
         // Fallback to static recommendations
-        setSuggestions(getMealSuggestions(selectedCategory, 6));
+        const staticRecs = getMealSuggestions(selectedCategory, 6);
+        setSuggestions(isVegOnly ? staticRecs.filter(m => isVegetarian(m.name)) : staticRecs);
       }
     } catch (error) {
       console.error('ML recommendations failed, using fallback:', error);
-      // Fallback to static recommendations
-      setSuggestions(getMealSuggestions(selectedCategory, 6));
+      const fallbackRecs = getMealSuggestions(selectedCategory, 6);
+      setSuggestions(isVegOnly ? fallbackRecs.filter(m => isVegetarian(m.name)) : fallbackRecs);
     }
     // Add a small delay to prevent rapid flickering
     setTimeout(() => setIsLoading(false), 300);
   }, [availableMeals.length, isLoading, userProfile.age, userProfile.weight_kg, userProfile.height_cm, selectedCategory, getMLRecommendations, isVegOnly]);
+
+  // Enforce vegetarian consistency if toggle flips after suggestions loaded (prevents stale non-veg)
+  useEffect(() => {
+    if (isVegOnly) {
+      setSuggestions(prev => prev.filter(m => isVegetarian(m?.name)));
+    }
+  }, [isVegOnly]);
 
   // Final guard for veg-only before rendering
   const displayedSuggestions = isVegOnly ? (suggestions || []).filter(m => isVegetarian(m?.name)) : suggestions;
@@ -469,7 +480,7 @@ const SafeMealSuggestions = ({ userProfile = {}, currentMeal = null, className =
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {displayedSuggestions.map((meal, index) => (
-              <div key={index} className="relative">
+              <div key={meal?.name || `meal_${index}`} className="relative">
                 <MealCard
                   meal={meal}
                   riskLevel="low"
